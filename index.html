@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>일본어 여행 250제</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
+        body { font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
+        .animate-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // 주제별 데이터베이스 (총 250개 확장을 고려한 데이터 구조)
+        const RAW_DATA = [
+            // --- 기본 ---
+            { w: 'はい', r: '하이', m: '네', c: '기본', h: '긍정의 대답' },
+            { w: 'いいえ', r: '이이에', m: '아니요', c: '기본', h: '부정의 대답' },
+            { w: 'ありがとう', r: '아리가토우', m: '고마워', c: '기본', h: '감사 인사' },
+            { w: 'すみません', r: '스미마센', m: '실례합니다', c: '기본', h: '저기요/미안합니다' },
+            { w: 'どこ', r: '도코', m: '어디', c: '기본', h: '장소를 물을 때' },
+            { w: 'これ', r: '코레', m: '이것', c: '기본', h: '가까운 것' },
+            { w: 'それ', r: '소레', m: '그것', c: '기본', h: '상대방 것' },
+            { w: 'あれ', r: '아레', m: '저것', c: '기본', h: '멀리 있는 것' },
+            { w: 'なに', r: '나니', m: '무엇', c: '기본', h: '의문사' },
+            { w: 'いつ', r: '이츠', m: '언제', c: '기본', h: '시간 의문사' },
+            { w: 'だれ', r: '다레', m: '누구', c: '기본', h: '인물 의문사' },
+            { w: 'トイレ', r: '토이레', m: '화장실', c: '기본', h: '급할 때 찾는 곳' },
+            { w: 'おねがいします', r: '오네가이시마스', m: '부탁합니다', c: '기본', h: '요청할 때' },
+            { w: 'わかりました', r: '와카리마시타', m: '알겠습니다', c: '기본', h: '이해했을 때' },
+            { w: 'わかりません', r: '와카리마센', m: '모르겠습니다', c: '기본', h: '이해 불가' },
+            { w: 'だいじょうぶ', r: '다이죠우부', m: '괜찮아', c: '기본', h: 'OK/No thanks' },
+            { w: 'ちょっと', r: '춋토', m: '잠깐', c: '기본', h: '조금/잠시' },
+            { w: 'もっと', r: '못토', m: '더', c: '기본', h: '추가 요청' },
+            { w: 'はじめまして', r: '하지메마시테', m: '처음 뵙겠습니다', c: '기본', h: '첫 인사' },
+            { w: 'よろしく', r: '요로시쿠', m: '잘 부탁해', c: '기본', h: '인사 끝' },
+
+            // --- 교통 ---
+            { w: 'えき', r: '에키', m: '역', c: '교통', h: '기차/지하철역' },
+            { w: 'でんしゃ', r: '덴샤', m: '전철', c: '교통', h: '열차' },
+            { w: 'ち카てつ', r: '치카테츠', m: '지하철', c: '교통', h: '땅속 열차' },
+            { w: 'バス', r: '바스', m: '버스', c: '교통', h: '대중교통' },
+            { w: 'タクシー', r: '타쿠시', m: '택시', c: '교통', h: '차' },
+            { w: 'くうこう', r: '쿠우코우', m: '공항', c: '교통', h: '비행기 타는 곳' },
+            { w: 'ひこうき', r: '히코우키', m: '비행기', c: '교통', h: '하늘 나는 것' },
+            { w: 'きっぷ', r: '킷푸', m: '표', c: '교통', h: '티켓' },
+            { w: 'のりば', r: '노리바', m: '타는 곳', c: '교통', h: '승강장' },
+            { w: 'でぐち', r: '데구치', m: '출구', c: '교통', h: '나가는 문' },
+            { w: 'いりぐち', r: '이리구치', m: '입구', c: '교통', h: '들어가는 문' },
+            { w: 'ひだり', r: '히다리', m: '왼쪽', c: '교통', h: '방향' },
+            { w: 'みぎ', r: '미기', m: '오른쪽', c: '교통', h: '방향' },
+            { w: 'まっすぐ', r: '맛스구', m: '똑바로', c: '교통', h: '직진' },
+            { w: 'とまる', r: '토마루', m: '멈추다', c: '교통', h: '정지' },
+
+            // --- 식당 ---
+            { w: 'みず', r: '미즈', m: '물', c: '식당', h: '생수' },
+            { w: '메뉴', r: '메뉴', m: '메뉴', c: '식당', h: '식단표' },
+            { w: 'ちゅうもん', r: '츄우몬', m: '주문', c: '식당', h: '시키기' },
+            { w: 'おいしい', r: '오이시이', m: '맛있다', c: '식당', h: '맛 표현' },
+            { w: 'おかんじょう', r: '오칸죠우', m: '계산', c: '식당', h: '돈 내기' },
+            { w: '나마비루', r: '나마비루', m: '생맥주', c: '식당', h: '술' },
+            { w: '고한', r: '고한', m: '밥', c: '식당', h: '식사' },
+            { w: '오하시', r: '오하시', m: '젓가락', c: '식당', h: '도구' },
+
+            // --- 쇼핑 ---
+            { w: '이쿠라', r: '이쿠라', m: '얼마', c: '쇼핑', h: '가격' },
+            { w: '타카이', r: '타카이', m: '비싸다', c: '쇼핑', h: '가격이 높음' },
+            { w: '야스이', r: '야스이', m: '싸다', c: '쇼핑', h: '가격이 낮음' },
+            { w: '카도', r: '카도', m: '카드', c: '쇼핑', h: '결제' },
+            { w: '겐킨', r: '겐킨', m: '현금', c: '쇼핑', h: '돈' },
+            { w: '오미야게', r: '오미야게', m: '기념품', c: '쇼핑', h: '선물' },
+
+            // --- 숙소 ---
+            { w: '호테루', r: '호테루', m: '호텔', c: '숙소', h: '숙박' },
+            { w: '요야쿠', r: '요야쿠', m: '예약', c: '숙소', h: '미리 잡기' },
+            { w: '헤야', r: '헤야', m: '방', c: '숙소', h: '객실' },
+            { w: '카기', r: '카기', m: '열쇠', c: '숙소', h: '키' },
+            { w: '후론토', r: '후론토', m: '접수처', c: '숙소', h: '카운터' }
+        ];
+
+        function App() {
+            const [view, setView] = useState('menu');
+            const [quizList, setQuizList] = useState([]);
+            const [idx, setIdx] = useState(0);
+            const [input, setInput] = useState('');
+            const [score, setScore] = useState(0);
+            const [isFlipped, setIsFlipped] = useState(false);
+            const [hint, setHint] = useState(false);
+
+            const start = (cat) => {
+                let list = cat === '전체' ? RAW_DATA : RAW_DATA.filter(d => d.c === cat);
+                list = [...list].sort(() => Math.random() - 0.5).slice(0, 50);
+                setQuizList(list);
+                setIdx(0);
+                setScore(0);
+                setView('quiz');
+                setHint(false);
+                setIsFlipped(false);
+                setInput('');
+            };
+
+            const check = (e) => {
+                e.preventDefault();
+                if (isFlipped || !input.trim()) return;
+                const correct = input.trim() === quizList[idx].m;
+                if (correct) setScore(s => s + 1);
+                setIsFlipped(true);
+            };
+
+            const next = () => {
+                if (idx + 1 < quizList.length) {
+                    setIdx(idx + 1);
+                    setInput('');
+                    setIsFlipped(false);
+                    setHint(false);
+                } else {
+                    setView('result');
+                }
+            };
+
+            const cats = [
+                {n:'전체', i:'fa-globe', cl:'bg-indigo-500'},
+                {n:'기본', i:'fa-comment-dots', cl:'bg-emerald-500'},
+                {n:'교통', i:'fa-train-subway', cl:'bg-blue-500'},
+                {n:'식당', i:'fa-utensils', cl:'bg-orange-500'},
+                {n:'쇼핑', i:'fa-bag-shopping', cl:'bg-pink-500'},
+                {n:'숙소', i:'fa-hotel', cl:'bg-purple-500'}
+            ];
+
+            return (
+                <div className="max-w-md mx-auto min-h-screen flex flex-col p-4">
+                    <header className="py-6 text-center">
+                        <h1 className="text-2xl font-extrabold text-slate-800 flex items-center justify-center gap-2">
+                            <i className="fa-solid fa-plane-departure text-indigo-600"></i> 일본어 여행 250제
+                        </h1>
+                    </header>
+
+                    {view === 'menu' && (
+                        <div className="grid grid-cols-2 gap-4 animate-in">
+                            {cats.map(c => (
+                                <button key={c.n} onClick={() => start(c.n)} className="flex flex-col items-center p-6 bg-white rounded-3xl card-shadow border border-slate-100 active:scale-95 transition-all">
+                                    <div className={`${c.cl} w-12 h-12 rounded-full flex items-center justify-center text-white mb-3 shadow-md`}>
+                                        <i className={`fa-solid ${c.i}`}></i>
+                                    </div>
+                                    <span className="font-bold text-slate-700">{c.n}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {view === 'quiz' && quizList[idx] && (
+                        <div className="flex-1 flex flex-col animate-in">
+                            <div className="flex justify-between items-center mb-4">
+                                <span className="bg-white px-3 py-1 rounded-full text-xs font-bold text-slate-400 border">{idx+1} / {quizList.length}</span>
+                                <span className="text-xs font-bold text-indigo-500 uppercase tracking-tighter">{quizList[idx].c}</span>
+                            </div>
+
+                            <div className="bg-white rounded-[2.5rem] p-8 card-shadow flex-1 flex flex-col justify-center items-center text-center relative border border-slate-50">
+                                <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-100">
+                                    <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${((idx + 1) / quizList.length) * 100}%` }}></div>
+                                </div>
+                                <p className="text-slate-400 text-sm mb-2 font-medium">읽기: {quizList[idx].r}</p>
+                                <h2 className="text-5xl font-black text-slate-900 mb-10 tracking-tight">{quizList[idx].w}</h2>
+
+                                <form onSubmit={check} className="w-full space-y-4">
+                                    <input 
+                                        type="text" 
+                                        value={input} 
+                                        onChange={e => setInput(e.target.value)}
+                                        disabled={isFlipped}
+                                        placeholder="뜻을 입력하세요"
+                                        className={`w-full p-5 rounded-2xl border-2 text-center text-xl outline-none transition-all ${isFlipped ? (input.trim() === quizList[idx].m ? 'border-green-500 bg-green-50 text-green-700' : 'border-red-500 bg-red-50 text-red-700') : 'border-slate-100 focus:border-indigo-500 shadow-inner'}`}
+                                        autoFocus
+                                    />
+                                    {!isFlipped ? (
+                                        <div className="flex gap-2">
+                                            <button type="button" onClick={() => setHint(!hint)} className="flex-1 py-4 font-bold text-slate-400 hover:text-indigo-500 transition-colors">힌트</button>
+                                            <button type="submit" className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all">확인</button>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            <div className={`font-bold text-lg p-3 rounded-xl ${input.trim() === quizList[idx].m ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
+                                                {input.trim() === quizList[idx].m ? '정답입니다! 🎉' : `오답! 정답은 [${quizList[idx].m}]`}
+                                            </div>
+                                            <button type="button" onClick={next} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-all">다음 문제</button>
+                                        </div>
+                                    )}
+                                </form>
+                                {hint && !isFlipped && <div className="mt-6 text-sm text-amber-600 bg-amber-50 p-4 rounded-xl border border-amber-100 italic">💡 {quizList[idx].h}</div>}
+                            </div>
+                        </div>
+                    )}
+
+                    {view === 'result' && (
+                        <div className="flex-1 flex flex-col items-center justify-center text-center bg-white rounded-[2.5rem] card-shadow p-10 animate-in border border-slate-50">
+                            <div className="w-20 h-20 bg-yellow-100 text-yellow-500 rounded-full flex items-center justify-center text-4xl mb-6 shadow-inner">
+                                <i className="fa-solid fa-crown"></i>
+                            </div>
+                            <h2 className="text-3xl font-black text-slate-900 mb-2">미션 클리어!</h2>
+                            <p className="text-slate-500 mb-8 font-medium">총 {quizList.length}문제 중 <span className="text-indigo-600 text-2xl font-bold">{score}개</span> 정답!</p>
+                            <button onClick={() => setView('menu')} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all">처음으로</button>
+                        </div>
+                    )}
+
+                    <footer className="py-6 text-center text-[10px] text-slate-300 font-bold uppercase tracking-widest">
+                        Travel Japanese 250 • Made for Travelers
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
