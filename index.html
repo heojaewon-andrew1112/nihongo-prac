@@ -1,228 +1,725 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>일본어 여행 250제</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
-        body { font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
-        .animate-in { animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
-</head>
-<body class="bg-slate-50 min-h-screen">
-    <div id="root"></div>
+import React, { useState, useEffect } from 'react';
+import { 
+  ShoppingBag, 
+  User, 
+  Package, 
+  Truck, 
+  ChevronRight, 
+  Edit3, 
+  CheckCircle, 
+  CreditCard,
+  Heart,
+  ArrowLeft,
+  Settings,
+  Info,
+  Layers,
+  Sparkles
+} from 'lucide-react';
 
-    <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+// --- Global Styles & Fonts ---
+const GlobalStyles = () => (
+  <style dangerouslySetInnerHTML={{ __html: `
+    @import url('https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+    
+    :root {
+      --brand-main: #f43f5e; /* Rose 500 */
+      --brand-light: #fff1f2; /* Rose 50 */
+      --brand-accent: #fb7185; /* Rose 400 */
+    }
 
-        // 주제별 데이터베이스 (총 250개 확장을 고려한 데이터 구조)
-        const RAW_DATA = [
-            // --- 기본 ---
-            { w: 'はい', r: '하이', m: '네', c: '기본', h: '긍정의 대답' },
-            { w: 'いいえ', r: '이이에', m: '아니요', c: '기본', h: '부정의 대답' },
-            { w: 'ありがとう', r: '아리가토우', m: '고마워', c: '기본', h: '감사 인사' },
-            { w: 'すみません', r: '스미마센', m: '실례합니다', c: '기본', h: '저기요/미안합니다' },
-            { w: 'どこ', r: '도코', m: '어디', c: '기본', h: '장소를 물을 때' },
-            { w: 'これ', r: '코레', m: '이것', c: '기본', h: '가까운 것' },
-            { w: 'それ', r: '소레', m: '그것', c: '기본', h: '상대방 것' },
-            { w: 'あれ', r: '아레', m: '저것', c: '기본', h: '멀리 있는 것' },
-            { w: 'なに', r: '나니', m: '무엇', c: '기본', h: '의문사' },
-            { w: 'いつ', r: '이츠', m: '언제', c: '기본', h: '시간 의문사' },
-            { w: 'だれ', r: '다레', m: '누구', c: '기본', h: '인물 의문사' },
-            { w: 'トイレ', r: '토이레', m: '화장실', c: '기본', h: '급할 때 찾는 곳' },
-            { w: 'おねがいします', r: '오네가이시마스', m: '부탁합니다', c: '기본', h: '요청할 때' },
-            { w: 'わかりました', r: '와카리마시타', m: '알겠습니다', c: '기본', h: '이해했을 때' },
-            { w: 'わかりません', r: '와카리마센', m: '모르겠습니다', c: '기본', h: '이해 불가' },
-            { w: 'だいじょうぶ', r: '다이죠우부', m: '괜찮아', c: '기본', h: 'OK/No thanks' },
-            { w: 'ちょっと', r: '춋토', m: '잠깐', c: '기본', h: '조금/잠시' },
-            { w: 'もっと', r: '못토', m: '더', c: '기본', h: '추가 요청' },
-            { w: 'はじめまして', r: '하지메마시테', m: '처음 뵙겠습니다', c: '기본', h: '첫 인사' },
-            { w: 'よろしく', r: '요로시쿠', m: '잘 부탁해', c: '기본', h: '인사 끝' },
+    .font-trendy { font-family: 'Do Hyeon', sans-serif; }
+    .font-serif-kr { font-family: 'Gowun Batang', serif; }
+    body { font-family: 'Noto Sans KR', sans-serif; }
+  `}} />
+);
 
-            // --- 교통 ---
-            { w: 'えき', r: '에키', m: '역', c: '교통', h: '기차/지하철역' },
-            { w: 'でんしゃ', r: '덴샤', m: '전철', c: '교통', h: '열차' },
-            { w: 'ち카てつ', r: '치카테츠', m: '지하철', c: '교통', h: '땅속 열차' },
-            { w: 'バス', r: '바스', m: '버스', c: '교통', h: '대중교통' },
-            { w: 'タクシー', r: '타쿠시', m: '택시', c: '교통', h: '차' },
-            { w: 'くうこう', r: '쿠우코우', m: '공항', c: '교통', h: '비행기 타는 곳' },
-            { w: 'ひこうき', r: '히코우키', m: '비행기', c: '교통', h: '하늘 나는 것' },
-            { w: 'きっぷ', r: '킷푸', m: '표', c: '교통', h: '티켓' },
-            { w: 'のりば', r: '노리바', m: '타는 곳', c: '교통', h: '승강장' },
-            { w: 'でぐち', r: '데구치', m: '출구', c: '교통', h: '나가는 문' },
-            { w: 'いりぐち', r: '이리구치', m: '입구', c: '교통', h: '들어가는 문' },
-            { w: 'ひだり', r: '히다리', m: '왼쪽', c: '교통', h: '방향' },
-            { w: 'みぎ', r: '미기', m: '오른쪽', c: '교통', h: '방향' },
-            { w: 'まっすぐ', r: '맛스구', m: '똑바로', c: '교통', h: '직진' },
-            { w: 'とまる', r: '토마루', m: '멈추다', c: '교통', h: '정지' },
+// --- Constants ---
+const POUCH_TYPES = [
+  { id: 'flat', name: '플랫 파우치', price: 12000, description: '가볍게 소지품을 담기 좋은 기본형' },
+  { id: 'box', name: '박스형 파우치', price: 18000, description: '화장품 등 부피 있는 수납에 최적' },
+  { id: 'string', name: '복조리 파우치', price: 15000, description: '귀여운 디자인의 조임식 파우치' }
+];
 
-            // --- 식당 ---
-            { w: 'みず', r: '미즈', m: '물', c: '식당', h: '생수' },
-            { w: '메뉴', r: '메뉴', m: '메뉴', c: '식당', h: '식단표' },
-            { w: 'ちゅうもん', r: '츄우몬', m: '주문', c: '식당', h: '시키기' },
-            { w: 'おいしい', r: '오이시이', m: '맛있다', c: '식당', h: '맛 표현' },
-            { w: 'おかんじょう', r: '오칸죠우', m: '계산', c: '식당', h: '돈 내기' },
-            { w: '나마비루', r: '나마비루', m: '생맥주', c: '식당', h: '술' },
-            { w: '고한', r: '고한', m: '밥', c: '식당', h: '식사' },
-            { w: '오하시', r: '오하시', m: '젓가락', c: '식당', h: '도구' },
+const COLORS = [
+  { name: '퓨어 화이트', hex: '#FFFFFF' },
+  { name: '베이비 핑크', hex: '#FCE4EC' },
+  { name: '라벤더 블룸', hex: '#F3E5F5' },
+  { name: '세이지 린넨', hex: '#E8F5E9' },
+  { name: '뮤트 로즈', hex: '#E91E63' }
+];
 
-            // --- 쇼핑 ---
-            { w: '이쿠라', r: '이쿠라', m: '얼마', c: '쇼핑', h: '가격' },
-            { w: '타카이', r: '타카이', m: '비싸다', c: '쇼핑', h: '가격이 높음' },
-            { w: '야스이', r: '야스이', m: '싸다', c: '쇼핑', h: '가격이 낮음' },
-            { w: '카도', r: '카도', m: '카드', c: '쇼핑', h: '결제' },
-            { w: '겐킨', r: '겐킨', m: '현금', c: '쇼핑', h: '돈' },
-            { w: '오미야게', r: '오미야게', m: '기념품', c: '쇼핑', h: '선물' },
+const MATERIALS = [
+  { id: 'cotton', name: '부드러운 워싱 코튼', extra: 0 },
+  { id: 'canvas', name: '탄탄한 캔버스', extra: 2000 },
+  { id: 'velvet', name: '고급스러운 벨벳', extra: 3500 }
+];
 
-            // --- 숙소 ---
-            { w: '호테루', r: '호테루', m: '호텔', c: '숙소', h: '숙박' },
-            { w: '요야쿠', r: '요야쿠', m: '예약', c: '숙소', h: '미리 잡기' },
-            { w: '헤야', r: '헤야', m: '방', c: '숙소', h: '객실' },
-            { w: '카기', r: '카기', m: '열쇠', c: '숙소', h: '키' },
-            { w: '후론토', r: '후론토', m: '접수처', c: '숙소', h: '카운터' }
-        ];
+const SIZES = [
+  { id: 'S', name: 'S (Mini)', extra: 0 },
+  { id: 'M', name: 'M (Medium)', extra: 3000 },
+  { id: 'L', name: 'L (Large)', extra: 6000 }
+];
 
-        function App() {
-            const [view, setView] = useState('menu');
-            const [quizList, setQuizList] = useState([]);
-            const [idx, setIdx] = useState(0);
-            const [input, setInput] = useState('');
-            const [score, setScore] = useState(0);
-            const [isFlipped, setIsFlipped] = useState(false);
-            const [hint, setHint] = useState(false);
+// --- Components ---
 
-            const start = (cat) => {
-                let list = cat === '전체' ? RAW_DATA : RAW_DATA.filter(d => d.c === cat);
-                list = [...list].sort(() => Math.random() - 0.5).slice(0, 50);
-                setQuizList(list);
-                setIdx(0);
-                setScore(0);
-                setView('quiz');
-                setHint(false);
-                setIsFlipped(false);
-                setInput('');
-            };
+const PouchGraphic = ({ type, color, material, text, font, size = "md" }) => {
+  const isDark = color === '#E91E63';
+  const textColor = isDark ? '#FFFFFF' : '#475569';
+  
+  const renderPouchShape = () => {
+    switch(type) {
+      case 'box':
+        return (
+          <svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-xl">
+            <path d="M40 80 L160 80 L170 140 L30 140 Z" fill={color} stroke="rgba(0,0,0,0.05)" strokeWidth="1" />
+            <path d="M40 80 L160 80 L160 70 L40 70 Z" fill="rgba(0,0,0,0.03)" />
+            <rect x="70" y="65" width="60" height="4" rx="2" fill="#FDA4AF" />
+            {text && (
+              <text x="100" y="115" textAnchor="middle" fill={textColor} style={{ fontFamily: font, fontSize: '14px', fontWeight: 'bold', opacity: 0.8 }}>
+                {text}
+              </text>
+            )}
+          </svg>
+        );
+      case 'string':
+        return (
+          <svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-xl">
+            <path d="M50 160 Q50 170 100 170 Q150 170 150 160 L160 80 Q100 60 40 80 Z" fill={color} stroke="rgba(0,0,0,0.05)" strokeWidth="1" />
+            <path d="M45 85 Q100 65 155 85" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeDasharray="4 2" />
+            <circle cx="100" cy="70" r="4" fill="#F43F5E" />
+            {text && (
+              <text x="100" y="130" textAnchor="middle" fill={textColor} style={{ fontFamily: font, fontSize: '14px', fontWeight: 'bold', opacity: 0.8 }}>
+                {text}
+              </text>
+            )}
+          </svg>
+        );
+      default: // flat
+        return (
+          <svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-xl">
+            <rect x="40" y="60" width="120" height="100" rx="12" fill={color} stroke="rgba(0,0,0,0.05)" strokeWidth="1" />
+            <rect x="40" y="60" width="120" height="12" rx="4" fill="rgba(0,0,0,0.03)" />
+            <rect x="80" y="63" width="40" height="4" rx="2" fill="#FDA4AF" />
+            {text && (
+              <text x="100" y="115" textAnchor="middle" fill={textColor} style={{ fontFamily: font, fontSize: '14px', fontWeight: 'bold', opacity: 0.8 }}>
+                {text}
+              </text>
+            )}
+          </svg>
+        );
+    }
+  };
 
-            const check = (e) => {
-                e.preventDefault();
-                if (isFlipped || !input.trim()) return;
-                const correct = input.trim() === quizList[idx].m;
-                if (correct) setScore(s => s + 1);
-                setIsFlipped(true);
-            };
+  return (
+    <div className="relative w-full h-full flex items-center justify-center p-4">
+      <div className={`absolute inset-0 opacity-10 pointer-events-none ${material === 'canvas' ? 'bg-[radial-gradient(#000_1px,transparent_1px)] bg-[size:6px_6px]' : material === 'velvet' ? 'bg-gradient-to-br from-white/30 to-black/5' : ''}`}></div>
+      {renderPouchShape()}
+    </div>
+  );
+};
 
-            const next = () => {
-                if (idx + 1 < quizList.length) {
-                    setIdx(idx + 1);
-                    setInput('');
-                    setIsFlipped(false);
-                    setHint(false);
-                } else {
-                    setView('result');
-                }
-            };
+export default function App() {
+  const [view, setView] = useState('home');
+  const [user, setUser] = useState(null);
+  const [orders, setOrders] = useState([
+    { id: 'ORD-2024-001', item: '베이비 핑크 박스 파우치', status: '배송중', date: '2024-03-15', price: 21000 }
+  ]);
+  
+  const [customPouch, setCustomPouch] = useState({
+    type: POUCH_TYPES[0],
+    color: COLORS[1],
+    material: MATERIALS[0],
+    size: SIZES[1],
+    text: '',
+    font: 'sans'
+  });
 
-            const cats = [
-                {n:'전체', i:'fa-globe', cl:'bg-indigo-500'},
-                {n:'기본', i:'fa-comment-dots', cl:'bg-emerald-500'},
-                {n:'교통', i:'fa-train-subway', cl:'bg-blue-500'},
-                {n:'식당', i:'fa-utensils', cl:'bg-orange-500'},
-                {n:'쇼핑', i:'fa-bag-shopping', cl:'bg-pink-500'},
-                {n:'숙소', i:'fa-hotel', cl:'bg-purple-500'}
-            ];
+  const totalPrice = customPouch.type.price + customPouch.material.extra + customPouch.size.extra;
 
-            return (
-                <div className="max-w-md mx-auto min-h-screen flex flex-col p-4">
-                    <header className="py-6 text-center">
-                        <h1 className="text-2xl font-extrabold text-slate-800 flex items-center justify-center gap-2">
-                            <i className="fa-solid fa-plane-departure text-indigo-600"></i> 일본어 여행 250제
-                        </h1>
-                    </header>
+  const renderView = () => {
+    switch (view) {
+      case 'home': return <HomeView setView={setView} />;
+      case 'about': return <AboutView setView={setView} />;
+      case 'order': return <OrderView customPouch={customPouch} setCustomPouch={setCustomPouch} setView={setView} totalPrice={totalPrice} />;
+      case 'checkout': return <CheckoutView customPouch={customPouch} totalPrice={totalPrice} onComplete={(newOrder) => {
+        setOrders([newOrder, ...orders]);
+        setView('myOrders');
+      }} />;
+      case 'myOrders': return <MyOrdersView orders={orders} setView={setView} />;
+      case 'login': return <LoginView setUser={setUser} setView={setView} />;
+      default: return <HomeView setView={setView} />;
+    }
+  };
 
-                    {view === 'menu' && (
-                        <div className="grid grid-cols-2 gap-4 animate-in">
-                            {cats.map(c => (
-                                <button key={c.n} onClick={() => start(c.n)} className="flex flex-col items-center p-6 bg-white rounded-3xl card-shadow border border-slate-100 active:scale-95 transition-all">
-                                    <div className={`${c.cl} w-12 h-12 rounded-full flex items-center justify-center text-white mb-3 shadow-md`}>
-                                        <i className={`fa-solid ${c.i}`}></i>
-                                    </div>
-                                    <span className="font-bold text-slate-700">{c.n}</span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
+  return (
+    <div className="min-h-screen bg-[#FFFBFB] text-slate-800">
+      <GlobalStyles />
+      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-rose-100">
+        <div className="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
+          <button onClick={() => setView('home')} className="flex items-center space-x-2 group">
+            <div className="w-10 h-10 bg-rose-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-rose-200 group-hover:rotate-12 transition-transform">
+              <ShoppingBag size={22} />
+            </div>
+            <span className="text-2xl font-trendy tracking-tight text-slate-900">담다<span className="text-rose-500">.</span></span>
+          </button>
+          
+          <div className="hidden md:flex items-center space-x-10 text-[15px] font-medium text-slate-500">
+            <button onClick={() => setView('about')} className={`hover:text-rose-500 transition ${view === 'about' ? 'text-rose-500 font-bold' : ''}`}>브랜드 스토리</button>
+            <button onClick={() => setView('order')} className={`hover:text-rose-500 transition ${view === 'order' ? 'text-rose-500 font-bold' : ''}`}>주문제작 스튜디오</button>
+            <button onClick={() => setView('myOrders')} className={`hover:text-rose-500 transition ${view === 'myOrders' ? 'text-rose-500 font-bold' : ''}`}>나의 주문</button>
+          </div>
 
-                    {view === 'quiz' && quizList[idx] && (
-                        <div className="flex-1 flex flex-col animate-in">
-                            <div className="flex justify-between items-center mb-4">
-                                <span className="bg-white px-3 py-1 rounded-full text-xs font-bold text-slate-400 border">{idx+1} / {quizList.length}</span>
-                                <span className="text-xs font-bold text-indigo-500 uppercase tracking-tighter">{quizList[idx].c}</span>
-                            </div>
+          <div className="flex items-center space-x-4">
+            <button onClick={() => setView('login')} className="p-2.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition">
+              <User size={22} />
+            </button>
+            <button onClick={() => setView('order')} className="bg-rose-500 text-white px-6 py-2.5 rounded-full text-sm font-trendy hover:bg-rose-600 transition shadow-md shadow-rose-100">
+              만들기
+            </button>
+          </div>
+        </div>
+      </nav>
 
-                            <div className="bg-white rounded-[2.5rem] p-8 card-shadow flex-1 flex flex-col justify-center items-center text-center relative border border-slate-50">
-                                <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-100">
-                                    <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${((idx + 1) / quizList.length) * 100}%` }}></div>
-                                </div>
-                                <p className="text-slate-400 text-sm mb-2 font-medium">읽기: {quizList[idx].r}</p>
-                                <h2 className="text-5xl font-black text-slate-900 mb-10 tracking-tight">{quizList[idx].w}</h2>
+      <main>{renderView()}</main>
 
-                                <form onSubmit={check} className="w-full space-y-4">
-                                    <input 
-                                        type="text" 
-                                        value={input} 
-                                        onChange={e => setInput(e.target.value)}
-                                        disabled={isFlipped}
-                                        placeholder="뜻을 입력하세요"
-                                        className={`w-full p-5 rounded-2xl border-2 text-center text-xl outline-none transition-all ${isFlipped ? (input.trim() === quizList[idx].m ? 'border-green-500 bg-green-50 text-green-700' : 'border-red-500 bg-red-50 text-red-700') : 'border-slate-100 focus:border-indigo-500 shadow-inner'}`}
-                                        autoFocus
-                                    />
-                                    {!isFlipped ? (
-                                        <div className="flex gap-2">
-                                            <button type="button" onClick={() => setHint(!hint)} className="flex-1 py-4 font-bold text-slate-400 hover:text-indigo-500 transition-colors">힌트</button>
-                                            <button type="submit" className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all">확인</button>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            <div className={`font-bold text-lg p-3 rounded-xl ${input.trim() === quizList[idx].m ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
-                                                {input.trim() === quizList[idx].m ? '정답입니다! 🎉' : `오답! 정답은 [${quizList[idx].m}]`}
-                                            </div>
-                                            <button type="button" onClick={next} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-all">다음 문제</button>
-                                        </div>
-                                    )}
-                                </form>
-                                {hint && !isFlipped && <div className="mt-6 text-sm text-amber-600 bg-amber-50 p-4 rounded-xl border border-amber-100 italic">💡 {quizList[idx].h}</div>}
-                            </div>
-                        </div>
-                    )}
+      <footer className="bg-white py-20 border-t border-rose-50">
+        <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-4 gap-12">
+          <div className="col-span-2 space-y-6">
+            <h4 className="text-2xl font-trendy text-rose-500 italic">Damda.</h4>
+            <p className="text-slate-400 text-sm leading-relaxed max-w-sm font-serif-kr">
+              가장 소중한 것을 담을 수 있도록,<br />
+              우리는 당신의 취향을 정성스럽게 바느질합니다.
+            </p>
+          </div>
+          <div className="space-y-4">
+            <h5 className="font-bold text-xs text-slate-900 uppercase tracking-widest">Guide</h5>
+            <ul className="text-sm text-slate-400 space-y-3 font-serif-kr">
+              <li>제작 가이드라인</li>
+              <li>단체 주문 안내</li>
+              <li>배송/교환 정책</li>
+            </ul>
+          </div>
+          <div className="space-y-4">
+            <h5 className="font-bold text-xs text-slate-900 uppercase tracking-widest">Contact</h5>
+            <ul className="text-sm text-slate-400 space-y-3 font-serif-kr">
+              <li>카카오톡 @담다오피셜</li>
+              <li>damda_custom@gmail.com</li>
+              <li>평일 10:00 - 18:00</li>
+            </ul>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
 
-                    {view === 'result' && (
-                        <div className="flex-1 flex flex-col items-center justify-center text-center bg-white rounded-[2.5rem] card-shadow p-10 animate-in border border-slate-50">
-                            <div className="w-20 h-20 bg-yellow-100 text-yellow-500 rounded-full flex items-center justify-center text-4xl mb-6 shadow-inner">
-                                <i className="fa-solid fa-crown"></i>
-                            </div>
-                            <h2 className="text-3xl font-black text-slate-900 mb-2">미션 클리어!</h2>
-                            <p className="text-slate-500 mb-8 font-medium">총 {quizList.length}문제 중 <span className="text-indigo-600 text-2xl font-bold">{score}개</span> 정답!</p>
-                            <button onClick={() => setView('menu')} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all">처음으로</button>
-                        </div>
-                    )}
+// --- Views ---
 
-                    <footer className="py-6 text-center text-[10px] text-slate-300 font-bold uppercase tracking-widest">
-                        Travel Japanese 250 • Made for Travelers
-                    </footer>
+function HomeView({ setView }) {
+  return (
+    <div className="space-y-32">
+      {/* Hero Section */}
+      <section className="relative min-h-[700px] flex items-center bg-gradient-to-b from-[#FFF5F5] to-white overflow-hidden">
+        <div className="max-w-6xl mx-auto px-4 w-full grid lg:grid-cols-2 gap-16 items-center relative z-10 py-20">
+          <div className="space-y-10 animate-in fade-in slide-in-from-bottom duration-1000">
+            <div className="inline-flex items-center px-4 py-1.5 bg-white border border-rose-100 text-rose-500 rounded-full text-xs font-bold shadow-sm">
+              <Sparkles size={14} className="mr-2" /> 1:1 맞춤 제작 핸드메이드 랩
+            </div>
+            <h1 className="text-6xl md:text-8xl font-trendy leading-[1.05] text-slate-900">
+              당신만의 색으로<br />
+              <span className="text-rose-500">일상을 담다.</span>
+            </h1>
+            <p className="text-xl text-slate-500 max-w-md leading-relaxed font-serif-kr">
+              매일 들고 다니는 파우치 하나에도<br />
+              당신의 이름과 취향이 묻어날 수 있게.
+            </p>
+            <div className="flex flex-wrap gap-5">
+              <button 
+                onClick={() => setView('order')}
+                className="group bg-rose-500 text-white px-10 py-5 rounded-full text-xl font-trendy hover:bg-rose-600 transition-all shadow-xl shadow-rose-200 flex items-center space-x-3"
+              >
+                <span>나만의 파우치 제작하기</span>
+                <ChevronRight size={24} className="group-hover:translate-x-2 transition-transform" />
+              </button>
+              <button 
+                onClick={() => setView('about')}
+                className="px-10 py-5 rounded-full border-2 border-rose-100 text-rose-500 font-trendy text-xl hover:bg-rose-50 transition"
+              >
+                브랜드 이야기
+              </button>
+            </div>
+          </div>
+          <div className="hidden lg:flex justify-center relative">
+             <div className="w-[500px] h-[500px] bg-rose-100/30 rounded-full absolute -z-10 blur-3xl scale-125"></div>
+             <div className="relative group">
+                <div className="w-80 h-96 bg-white rounded-[3rem] shadow-2xl flex flex-col items-center justify-center p-10 rotate-3 border border-rose-50 transition-transform group-hover:rotate-0 duration-500">
+                   <PouchGraphic type="box" color="#FCE4EC" material="canvas" text="YOUR NAME" font="serif" />
                 </div>
-            );
-        }
+                <div className="absolute -bottom-10 -left-10 w-64 h-64 bg-rose-400 rounded-[3rem] shadow-2xl p-8 -rotate-12 transition-transform group-hover:-rotate-6 duration-500 border-4 border-white">
+                   <PouchGraphic type="string" color="#FFFFFF" material="cotton" />
+                </div>
+             </div>
+          </div>
+        </div>
+      </section>
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+      {/* Featured Items */}
+      <section className="max-w-6xl mx-auto px-4 pb-20">
+        <div className="text-center mb-20 space-y-4">
+          <h2 className="text-4xl font-trendy">많은 분들이 사랑한 조합</h2>
+          <p className="text-slate-400 font-serif-kr">취향을 찾기 어렵다면 베스트 커스텀을 참고해보세요.</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          {[
+            { type: 'string', color: '#FCE4EC', name: '러블리 스트링 팩', price: '15,000' },
+            { type: 'box', color: '#E91E63', name: '딥 로즈 코스메틱', price: '18,000' },
+            { type: 'flat', color: '#FFFFFF', name: '퓨어 린넨 필통', price: '12,000' }
+          ].map((item, i) => (
+            <div key={i} className="group text-center">
+              <div className="aspect-[4/5] bg-white rounded-[2.5rem] mb-6 overflow-hidden shadow-sm group-hover:shadow-2xl group-hover:-translate-y-2 transition-all duration-500 border border-rose-50 flex items-center justify-center">
+                <div className="w-full h-full p-10">
+                  <PouchGraphic type={item.type} color={item.color} material="cotton" />
+                </div>
+              </div>
+              <h3 className="font-trendy text-2xl mb-2">{item.name}</h3>
+              <p className="text-rose-500 font-bold">{item.price}원 ~</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function AboutView({ setView }) {
+  return (
+    <div className="animate-in fade-in duration-700">
+      {/* Intro Header */}
+      <section className="bg-rose-50 py-32 overflow-hidden relative">
+         <div className="max-w-4xl mx-auto px-4 text-center space-y-8 relative z-10">
+           <span className="text-rose-500 font-bold tracking-widest uppercase text-xs">Our Story</span>
+           <h2 className="text-5xl md:text-7xl font-trendy leading-tight text-slate-900">당신의 정성을<br />온전히 담아내는 그릇.</h2>
+           <p className="text-lg text-slate-600 font-serif-kr leading-relaxed">
+             '담다'는 단순히 물건을 넣는 주머니를 만들지 않습니다.<br />
+             우리는 당신의 취향, 기억, 그리고 매일을 담는 가장 개인적인 공간을 만듭니다.
+           </p>
+         </div>
+         <div className="absolute top-0 right-0 w-96 h-96 bg-rose-200/20 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+         <div className="absolute bottom-0 left-0 w-80 h-80 bg-rose-300/10 rounded-full -ml-40 -mb-40 blur-3xl"></div>
+      </section>
+
+      {/* Brand Philosophy */}
+      <section className="max-w-6xl mx-auto px-4 py-32 grid md:grid-cols-2 gap-20 items-center">
+        <div className="space-y-12">
+          <div className="space-y-4">
+            <h3 className="text-3xl font-trendy flex items-center gap-3">
+              <div className="w-8 h-8 bg-rose-500 rounded-full flex items-center justify-center text-white"><Info size={16}/></div>
+              한 사람을 위한 단 하나의 작업
+            </h3>
+            <p className="text-slate-500 font-serif-kr leading-loose">
+              담다의 모든 제품은 주문이 들어오는 순간 시작됩니다. 공장에서 대량으로 찍어내는 방식이 아닌, 한 분 한 분의 선택을 확인하고 원단을 재단하며 꼼꼼히 바느질합니다. 그래서 조금 느릴 수 있지만, 그만큼 견고하고 특별합니다.
+            </p>
+          </div>
+          <div className="space-y-4">
+            <h3 className="text-3xl font-trendy flex items-center gap-3">
+              <div className="w-8 h-8 bg-rose-500 rounded-full flex items-center justify-center text-white"><Layers size={16}/></div>
+              엄선된 소재의 질감
+            </h3>
+            <p className="text-slate-500 font-serif-kr leading-loose">
+              손에 닿는 느낌이 기분 좋을 수 있도록, 우리는 수십 종의 원단 중에서 가장 부드럽고 따뜻한 린넨과 코튼만을 선별합니다. 시간이 지날수록 당신의 손때가 묻어 더 멋스러워지는 소재를 지향합니다.
+            </p>
+          </div>
+        </div>
+        <div className="bg-rose-50 rounded-[3rem] aspect-square flex items-center justify-center p-20 relative">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/natural-paper.png')] opacity-30"></div>
+          <PouchGraphic type="box" color="#FFFFFF" material="canvas" text="DAMDA CRAFT" font="serif" />
+          <div className="absolute -bottom-6 -right-6 bg-white p-6 rounded-3xl shadow-xl border border-rose-50">
+            <p className="text-xs font-bold text-rose-500 mb-1 italic">Made by heart</p>
+            <p className="text-sm font-trendy">장인의 정성이 담긴 바느질</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Crafting Process */}
+      <section className="bg-slate-900 py-32 text-white">
+        <div className="max-w-6xl mx-auto px-4">
+          <h2 className="text-4xl font-trendy text-center mb-20 text-rose-300">담다가 만들어지는 과정</h2>
+          <div className="grid md:grid-cols-4 gap-12">
+            {[
+              { step: '01', title: '취향 발견', desc: '컬러, 소재, 형태를 자유롭게 조합합니다.' },
+              { step: '02', title: '정밀 재단', desc: '선택하신 사이즈에 맞춰 수작업으로 재단합니다.' },
+              { step: '03', title: '섬세한 자수', desc: '당신만의 문구를 한 땀 한 땀 각인합니다.' },
+              { step: '04', title: '정성껏 담다', desc: '마지막 검수 후 예쁘게 포장하여 보냅니다.' }
+            ].map((p, i) => (
+              <div key={i} className="space-y-6 text-center group">
+                <div className="text-5xl font-trendy text-rose-500/30 group-hover:text-rose-500 transition-colors">{p.step}</div>
+                <h4 className="text-xl font-trendy">{p.title}</h4>
+                <p className="text-slate-400 text-sm font-serif-kr">{p.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-32 text-center space-y-10">
+        <h2 className="text-4xl font-trendy">이제, 당신의 취향을 담아보세요.</h2>
+        <button 
+          onClick={() => setView('order')}
+          className="bg-rose-500 text-white px-12 py-5 rounded-full text-2xl font-trendy hover:bg-rose-600 transition shadow-2xl shadow-rose-200"
+        >
+          제작 시작하기
+        </button>
+      </section>
+    </div>
+  );
+}
+
+function OrderView({ customPouch, setCustomPouch, setView, totalPrice }) {
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-16 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
+        <div>
+          <h2 className="text-4xl font-trendy mb-3">나만의 파우치 만들기</h2>
+          <p className="text-slate-500 font-serif-kr">모든 옵션을 실시간으로 확인하며 디자인하세요.</p>
+        </div>
+        <div className="flex items-center space-x-2 text-rose-500 font-trendy">
+           <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></div>
+           <span>Studio Mode Active</span>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-16 items-start">
+        {/* Preview Panel */}
+        <div className="sticky top-32 bg-white rounded-[3rem] p-12 shadow-2xl shadow-rose-100/50 border border-rose-50 flex flex-col items-center justify-center min-h-[550px]">
+          <div className="w-full max-w-sm aspect-square relative transform hover:scale-105 transition-transform duration-700">
+            <PouchGraphic 
+              type={customPouch.type.id} 
+              color={customPouch.color.hex} 
+              material={customPouch.material.id} 
+              text={customPouch.text}
+              font={customPouch.font}
+            />
+          </div>
+          <div className="mt-12 text-center space-y-4">
+            <div className="inline-block px-4 py-1 bg-rose-50 text-rose-500 rounded-full text-xs font-bold uppercase tracking-widest">Selected Style</div>
+            <h4 className="text-3xl font-trendy text-slate-900">{customPouch.type.name}</h4>
+            <div className="flex items-center justify-center space-x-3 text-slate-400 font-serif-kr">
+              <span>{customPouch.color.name}</span>
+              <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
+              <span>{customPouch.material.name}</span>
+              <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
+              <span>{customPouch.size.name}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Options Panel */}
+        <div className="space-y-16">
+          {/* Step 1: Shape */}
+          <section>
+            <h3 className="text-2xl font-trendy mb-8 flex items-center space-x-4">
+              <span className="w-10 h-10 bg-rose-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-rose-100">1</span>
+              <span>파우치의 모양을 골라볼까요?</span>
+            </h3>
+            <div className="grid gap-4">
+              {POUCH_TYPES.map(type => (
+                <button 
+                  key={type.id}
+                  onClick={() => setCustomPouch({...customPouch, type})}
+                  className={`p-6 rounded-[2rem] border-2 text-left transition-all flex items-center justify-between group ${customPouch.type.id === type.id ? 'border-rose-500 bg-rose-50/50' : 'border-slate-100 bg-white hover:border-rose-200'}`}
+                >
+                  <div className="flex items-center space-x-5">
+                    <div className="w-16 h-16 rounded-2xl bg-slate-50 overflow-hidden flex-shrink-0 border border-slate-100 group-hover:scale-110 transition-transform">
+                       <PouchGraphic type={type.id} color="#ffffff" material="cotton" />
+                    </div>
+                    <div>
+                      <div className="font-trendy text-xl">{type.name}</div>
+                      <div className="text-sm text-slate-400 font-serif-kr">{type.description}</div>
+                    </div>
+                  </div>
+                  <div className="font-trendy text-lg">+{type.price.toLocaleString()}원</div>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* Step 2: Color */}
+          <section>
+            <h3 className="text-2xl font-trendy mb-8 flex items-center space-x-4">
+              <span className="w-10 h-10 bg-rose-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-rose-100">2</span>
+              <span>원하는 색을 담아보세요</span>
+            </h3>
+            <div className="grid grid-cols-5 gap-6">
+              {COLORS.map(color => (
+                <button 
+                  key={color.name}
+                  onClick={() => setCustomPouch({...customPouch, color})}
+                  className="flex flex-col items-center group space-y-3"
+                >
+                  <div 
+                    className={`w-full aspect-square rounded-full border-4 transition-all shadow-inner relative ${customPouch.color.name === color.name ? 'border-rose-500 scale-110' : 'border-white'}`} 
+                    style={{ backgroundColor: color.hex }}
+                  >
+                    {customPouch.color.name === color.name && <div className="absolute inset-0 flex items-center justify-center text-rose-500"><CheckCircle size={20} /></div>}
+                  </div>
+                  <span className={`text-xs font-bold ${customPouch.color.name === color.name ? 'text-rose-500' : 'text-slate-400'}`}>
+                    {color.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* Step 3: Material & Size */}
+          <section className="grid sm:grid-cols-2 gap-10">
+            <div className="space-y-6">
+              <h3 className="text-xl font-trendy flex items-center space-x-3">
+                <span className="w-8 h-8 bg-rose-500 text-white rounded-xl flex items-center justify-center">3</span>
+                <span>소재 선택</span>
+              </h3>
+              <div className="space-y-3">
+                {MATERIALS.map(m => (
+                  <button 
+                    key={m.id}
+                    onClick={() => setCustomPouch({...customPouch, material: m})}
+                    className={`w-full p-4 rounded-2xl border-2 text-sm font-bold transition-all ${customPouch.material.id === m.id ? 'bg-rose-500 text-white border-rose-500' : 'bg-white text-slate-500 border-slate-100 hover:border-rose-100'}`}
+                  >
+                    {m.name} {m.extra > 0 && `(+${m.extra.toLocaleString()})`}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-6">
+              <h3 className="text-xl font-trendy flex items-center space-x-3">
+                <span className="w-8 h-8 bg-rose-500 text-white rounded-xl flex items-center justify-center">4</span>
+                <span>사이즈</span>
+              </h3>
+              <div className="space-y-3">
+                {SIZES.map(s => (
+                  <button 
+                    key={s.id}
+                    onClick={() => setCustomPouch({...customPouch, size: s})}
+                    className={`w-full p-4 rounded-2xl border-2 text-sm font-bold transition-all ${customPouch.size.id === s.id ? 'bg-rose-500 text-white border-rose-500' : 'bg-white text-slate-500 border-slate-100 hover:border-rose-100'}`}
+                  >
+                    {s.name} {s.extra > 0 && `(+${s.extra.toLocaleString()})`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Step 4: Text */}
+          <section>
+            <h3 className="text-2xl font-trendy mb-8 flex items-center space-x-4">
+              <span className="w-10 h-10 bg-rose-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-rose-100">5</span>
+              <span>나만의 문구 새기기</span>
+            </h3>
+            <div className="bg-rose-50/50 p-8 rounded-[2.5rem] border border-rose-100 space-y-6">
+              <input 
+                type="text"
+                placeholder="문구를 입력하세요 (최대 12자)"
+                maxLength={12}
+                value={customPouch.text}
+                onChange={(e) => setCustomPouch({...customPouch, text: e.target.value})}
+                className="w-full p-5 bg-white rounded-2xl border-none focus:ring-2 focus:ring-rose-300 outline-none text-xl font-trendy shadow-sm"
+              />
+              <div className="flex flex-wrap gap-3">
+                {[
+                  { id: 'serif', label: 'Classic Serif' },
+                  { id: 'sans', label: 'Modern Sans' },
+                  { id: 'cursive', label: 'Lovely Pen' }
+                ].map(f => (
+                  <button 
+                    key={f.id} 
+                    onClick={() => setCustomPouch({...customPouch, font: f.id})}
+                    className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all border-2 ${customPouch.font === f.id ? 'bg-rose-500 text-white border-rose-500 shadow-lg' : 'bg-white text-slate-400 border-rose-50 hover:border-rose-200'}`}
+                    style={{ fontFamily: f.id }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Summary Card */}
+          <div className="bg-slate-900 text-white p-10 rounded-[3rem] shadow-2xl relative overflow-hidden group">
+            <div className="absolute -top-20 -right-20 w-64 h-64 bg-rose-500 rounded-full blur-[100px] opacity-20"></div>
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-6 relative z-10">
+              <div className="text-center sm:text-left">
+                <p className="text-rose-300 text-xs font-bold uppercase tracking-widest mb-1">Final Estimation</p>
+                <div className="text-5xl font-trendy">{totalPrice.toLocaleString()}<span className="text-xl ml-1">원</span></div>
+              </div>
+              <button 
+                onClick={() => setView('checkout')}
+                className="w-full sm:w-auto bg-rose-500 hover:bg-rose-600 text-white px-12 py-5 rounded-[1.5rem] text-2xl font-trendy transition-all transform hover:scale-105 active:scale-95 shadow-xl shadow-rose-900/50 flex items-center justify-center space-x-3"
+              >
+                <span>제작 주문하기</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CheckoutView({ customPouch, totalPrice, onComplete }) {
+  const [loading, setLoading] = useState(false);
+
+  const handlePayment = () => {
+    setLoading(true);
+    setTimeout(() => {
+      onComplete({
+        id: `ORD-${Date.now().toString().slice(-4)}`,
+        item: `${customPouch.color.name} ${customPouch.type.name}`,
+        status: '주문완료',
+        date: new Date().toISOString().split('T')[0],
+        price: totalPrice + 3000
+      });
+    }, 1500);
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-20 animate-in fade-in duration-500">
+      <h2 className="text-4xl font-trendy text-center mb-16">주문/결제</h2>
+      <div className="grid md:grid-cols-5 gap-12">
+        <div className="md:col-span-3 space-y-10">
+          <div className="bg-white rounded-[2rem] p-8 border border-rose-50 shadow-sm space-y-6">
+            <h3 className="font-trendy text-2xl flex items-center gap-3"><Truck size={24} className="text-rose-500" /> 배송 정보</h3>
+            <div className="grid gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <input className="p-4 bg-rose-50/30 rounded-2xl border-none text-sm font-serif-kr" placeholder="받는 분 성함" />
+                <input className="p-4 bg-rose-50/30 rounded-2xl border-none text-sm font-serif-kr" placeholder="연락처" />
+              </div>
+              <input className="p-4 bg-rose-50/30 rounded-2xl border-none text-sm font-serif-kr" placeholder="주소" />
+              <input className="p-4 bg-rose-50/30 rounded-2xl border-none text-sm font-serif-kr" placeholder="상세 주소" />
+            </div>
+          </div>
+          <div className="bg-white rounded-[2rem] p-8 border border-rose-50 shadow-sm space-y-6">
+            <h3 className="font-trendy text-2xl flex items-center gap-3"><CreditCard size={24} className="text-rose-500" /> 결제 수단</h3>
+            <div className="grid grid-cols-3 gap-4 font-trendy">
+              <button className="flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-rose-500 bg-rose-50">
+                <span className="text-xs">카드 결제</span>
+              </button>
+              <button className="flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-slate-50 hover:border-rose-200">
+                <span className="text-xs">무통장 입금</span>
+              </button>
+              <button className="flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-slate-50 hover:border-rose-200">
+                <span className="text-xs">네이버페이</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="md:col-span-2">
+          <div className="bg-rose-500 text-white rounded-[2.5rem] p-10 sticky top-32 shadow-2xl shadow-rose-200">
+             <h3 className="font-trendy text-2xl mb-8">주문 요약</h3>
+             <div className="space-y-6 mb-8 text-sm font-serif-kr">
+               <div className="flex justify-between opacity-80"><span>주문 상품</span><span>{totalPrice.toLocaleString()}원</span></div>
+               <div className="flex justify-between opacity-80"><span>배송비</span><span>+ 3,000원</span></div>
+               <div className="pt-6 border-t border-white/20 flex justify-between text-2xl font-trendy">
+                 <span>총 결제금액</span>
+                 <span>{(totalPrice + 3000).toLocaleString()}원</span>
+               </div>
+             </div>
+             <button 
+               onClick={handlePayment}
+               disabled={loading}
+               className="w-full bg-white text-rose-500 py-5 rounded-[1.5rem] font-trendy text-2xl shadow-xl hover:bg-rose-50 transition transform active:scale-95"
+             >
+               {loading ? '처리중...' : '확정하기'}
+             </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MyOrdersView({ orders, setView }) {
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-20 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
+        <div>
+          <h2 className="text-5xl font-trendy mb-4 text-slate-900">나의 주문</h2>
+          <p className="text-slate-400 font-serif-kr">담다가 당신의 취향을 정성껏 만들고 있어요.</p>
+        </div>
+        <button onClick={() => setView('order')} className="text-rose-500 font-trendy text-xl border-b-2 border-rose-100 hover:border-rose-500 pb-1 transition">새 디자인 시작하기</button>
+      </div>
+
+      <div className="space-y-10">
+        {orders.length === 0 ? (
+          <div className="text-center py-40 bg-white rounded-[3rem] border border-rose-50">
+            <Package size={60} className="mx-auto text-rose-100 mb-6" />
+            <p className="text-slate-400 font-serif-kr">아직 담은 취향이 없네요.</p>
+          </div>
+        ) : (
+          orders.map((order) => (
+            <div key={order.id} className="bg-white p-10 rounded-[3rem] border border-rose-50 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-10 relative z-10">
+                <div className="flex items-center space-x-10">
+                  <div className="w-24 h-24 bg-rose-50 rounded-[2rem] flex-shrink-0 group-hover:scale-110 transition-transform duration-500 overflow-hidden p-4">
+                     <PouchGraphic type="box" color="#FCE4EC" material="canvas" />
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3 text-xs font-bold text-slate-300 tracking-widest">
+                       <span>{order.id}</span>
+                       <span className="w-1 h-1 bg-rose-200 rounded-full"></span>
+                       <span>{order.date}</span>
+                    </div>
+                    <h3 className="font-trendy text-2xl text-slate-900 group-hover:text-rose-500 transition-colors">{order.item}</h3>
+                    <div className="flex items-center space-x-3">
+                      <span className={`px-4 py-1 rounded-full text-[10px] font-bold tracking-widest ${order.status === '배송중' ? 'bg-rose-100 text-rose-600' : 'bg-green-50 text-green-600'}`}>
+                        {order.status.toUpperCase()}
+                      </span>
+                      <span className="text-xl font-bold text-slate-900">{order.price.toLocaleString()}원</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button className="px-8 py-4 rounded-2xl bg-slate-50 text-slate-500 text-sm font-trendy hover:bg-slate-100 transition">상세 정보</button>
+                  <button className="px-8 py-4 rounded-2xl bg-rose-500 text-white text-sm font-trendy hover:bg-rose-600 transition flex items-center justify-center space-x-2">
+                    <Truck size={16} />
+                    <span>배송 현황</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LoginView({ setUser, setView }) {
+  const [isSignup, setIsSignup] = useState(false);
+
+  return (
+    <div className="max-w-md mx-auto px-4 py-32 animate-in fade-in scale-95 duration-500">
+      <div className="bg-white rounded-[3rem] p-12 border border-rose-50 shadow-2xl text-center relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-3 bg-rose-500"></div>
+        <h2 className="text-4xl font-trendy mb-4 text-slate-900">{isSignup ? '처음 뵙겠습니다!' : '다시 만났네요!'}</h2>
+        <p className="text-slate-400 mb-12 text-sm font-serif-kr">당신의 취향을 기록하기 위해 로그인해 주세요.</p>
+        
+        <div className="space-y-4 mb-10">
+          {isSignup && <input className="w-full p-5 bg-rose-50/50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-rose-200 font-serif-kr" placeholder="이름" />}
+          <input className="w-full p-5 bg-rose-50/50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-rose-200 font-serif-kr" placeholder="이메일" />
+          <input className="w-full p-5 bg-rose-50/50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-rose-200 font-serif-kr" type="password" placeholder="비밀번호" />
+        </div>
+
+        <button 
+          onClick={() => { setUser({ name: '사용자' }); setView('home'); }}
+          className="w-full bg-rose-500 text-white py-5 rounded-[1.5rem] font-trendy text-2xl mb-8 hover:bg-rose-600 transition-all shadow-xl shadow-rose-100"
+        >
+          {isSignup ? '회원가입' : '시작하기'}
+        </button>
+
+        <button onClick={() => setIsSignup(!isSignup)} className="text-sm font-bold text-rose-300 hover:text-rose-500 transition-colors">
+          {isSignup ? '이미 회원이신가요?' : '아직 계정이 없으신가요?'}
+        </button>
+      </div>
+    </div>
+  );
+}
